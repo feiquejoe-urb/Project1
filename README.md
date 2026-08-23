@@ -1,8 +1,10 @@
-# Common Ground 本地小样
+# Common Ground Studio GIS
 
 产品目录：`D:\CC\CommonGround`
 
-## 最简单的启动方式
+线上 Demo：[common-ground-studio.vercel.app](https://common-ground-studio.vercel.app)
+
+## 本地启动
 
 双击产品目录中的：
 
@@ -45,10 +47,21 @@ npm run dev
 - 只读属性表与字段统计摘要
 - 浏览器端图片压缩
 - 同设备编辑和下架
-- IndexedDB 本地持久化
+- 本地模式使用 IndexedDB 持久化
+- 云端模式使用 Supabase 匿名身份、Postgres、私有 Storage 与 Realtime
 - IndexedDB v2 将图层元数据、数据集、附件和评论分开保存
 - 多图层 ZIP 打包下载
 
 数据结构说明见 `DATA_MODEL_V2.md`。
 
-当前版本的数据只保存在使用该网页的浏览器中，尚未跨设备同步。
+## 云端部署
+
+1. 在 Supabase SQL Editor 执行 `supabase/migrations/202608230001_initial_cloud_demo.sql`。
+2. 在 Supabase Authentication 中启用 Anonymous Sign-Ins。
+3. 在 Vercel 项目中添加以下 Production 环境变量：
+   - `VITE_DATA_MODE=cloud`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+4. 重新部署 Production。
+
+云端模式会让同一个 Studio 的图层、观察、附件和评论跨设备共享；图层可见性、透明度和筛选仍只保存在各自浏览器中。上传者的匿名身份保存在浏览器会话中，清除站点数据后将失去对既有内容的编辑和删除权限。

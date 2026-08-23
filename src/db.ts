@@ -2,6 +2,7 @@ import { openDB, type DBSchema } from 'idb'
 import { DEFAULT_PIN_CATEGORY } from './pinCategories'
 import { DEFAULT_SYSTEM_ID } from './systems'
 import type { LayerDataset, MapAnnotation, MapAnnotationView, ObservationAttachment, ObservationComment, SpatialLayer, SpatialLayerView } from './types'
+import type { DataRepository } from './repository.types'
 
 interface SpatialShareDB extends DBSchema {
   layers: {
@@ -121,7 +122,15 @@ const dbPromise = openDB<SpatialShareDB>('common-ground-spatial-share', 2, {
   },
 })
 
-export const repository = {
+export const localRepository: DataRepository = {
+  async ensureSession() {
+    const deviceId = localStorage.getItem('common-ground-device') || crypto.randomUUID()
+    const contributorId = localStorage.getItem('common-ground-contributor') || crypto.randomUUID()
+    localStorage.setItem('common-ground-device', deviceId)
+    localStorage.setItem('common-ground-contributor', contributorId)
+    return contributorId
+  },
+  async setDisplayName() {},
   async getLayers() {
     const db = await dbPromise
     const layers = (await db.getAllFromIndex('layers', 'by-created')).reverse()
@@ -136,6 +145,7 @@ export const repository = {
     const transaction = db.transaction(['layers', 'datasets'], 'readwrite')
     const { dataset, ...metadata } = layer
     await Promise.all([transaction.objectStore('layers').put(metadata), transaction.objectStore('datasets').put(dataset), transaction.done])
+    return layer
   },
   async replaceLayerDataset(layer: SpatialLayerView, previousDatasetId: string) {
     const db = await dbPromise
@@ -145,11 +155,16 @@ export const repository = {
     await transaction.objectStore('layers').put(metadata)
     if (previousDatasetId !== dataset.id) await transaction.objectStore('datasets').delete(previousDatasetId)
     await transaction.done
+    return layer
   },
   async deleteLayer(layer: SpatialLayerView) {
     const db = await dbPromise
     const transaction = db.transaction(['layers', 'datasets'], 'readwrite')
     await Promise.all([transaction.objectStore('layers').delete(layer.id), transaction.objectStore('datasets').delete(layer.datasetId), transaction.done])
+  },
+  async getOriginalFile(layer: SpatialLayerView) {
+    if (!layer.dataset.originalFile) throw new Error('The original file is not available on this device.')
+    return layer.dataset.originalFile
   },
   async getAnnotations() {
     const db = await dbPromise
@@ -168,6 +183,7 @@ export const repository = {
     await Promise.all(oldAttachmentKeys.map((key) => transaction.objectStore('attachments').delete(key)))
     await Promise.all(attachments.map((attachment) => transaction.objectStore('attachments').put(attachment)))
     await transaction.done
+    return annotation
   },
   async deleteAnnotation(annotation: MapAnnotationView) {
     const db = await dbPromise
@@ -188,4 +204,7 @@ export const repository = {
   async deleteComment(commentId: string) {
     await (await dbPromise).delete('comments', commentId)
   },
+  subscribe() { return () => undefined },
 }
+
+export const repository = localRepository

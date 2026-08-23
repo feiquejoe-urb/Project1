@@ -35,7 +35,9 @@ export interface LayerDataset {
   layerId: string
   format: LayerFormat
   originalFileName: string
-  originalFile: Blob
+  originalFile?: Blob
+  originalObjectPath?: string
+  normalizedObjectPath?: string
   geojson: FeatureCollection<Geometry, GeoJsonProperties>
   crs: 'EPSG:4326'
   bbox?: [number, number, number, number]
@@ -76,7 +78,9 @@ export interface ObservationAttachment {
   fileName: string
   mimeType: string
   fileSize: number
-  blob: Blob
+  blob?: Blob
+  objectPath?: string
+  url?: string
   sortOrder: number
   createdAt: string
 }
